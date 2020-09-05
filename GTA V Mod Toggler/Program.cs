@@ -59,10 +59,10 @@ namespace GTA_V_Mod_Toggler {
                 var productKey = key?.OpenSubKey(name);
                 var publisher = Convert.ToString(productKey?.GetValue("Publisher"));
                 var displayName = Convert.ToString(productKey?.GetValue("DisplayName"));
-                if (publisher != null && !publisher.Equals("Rockstar Games", StringComparison.OrdinalIgnoreCase)) {
+                if (!publisher.Equals("Rockstar Games", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
-                if (displayName != null && !displayName.Equals("Grand Theft Auto V", StringComparison.OrdinalIgnoreCase)) {
+                if (!displayName.Equals("Grand Theft Auto V", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 var installPath = Convert.ToString(productKey?.GetValue("InstallLocation"));
