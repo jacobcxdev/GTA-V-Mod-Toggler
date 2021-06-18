@@ -105,7 +105,7 @@ namespace GTA_V_Mod_Toggler {
                 Log(LogMode.Fatal, "No mods found!");
                 return false;
             }
-            Log(LogMode.Add, $"{(enabled == 1 ? "Enabled" : "Disabled")} mods.");
+            Log(LogMode.Add, $"{(enabled == 1 ? "Disabled" : "Enabled")} mods.");
             return true;
         }
 
