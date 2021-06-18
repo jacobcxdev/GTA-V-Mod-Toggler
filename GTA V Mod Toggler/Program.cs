@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -7,7 +7,7 @@ using Microsoft.Win32;
 namespace GTA_V_Mod_Toggler {
     class Program {
 
-        private enum LogMode { 
+        private enum LogMode {
             Default,
             Add,
             Fatal,
@@ -19,36 +19,36 @@ namespace GTA_V_Mod_Toggler {
         private static void Log(LogMode mode, string format, params object[] objects) {
             string prefix;
             switch (mode) {
-            case LogMode.Default:
+                case LogMode.Default:
 #if DEBUG
-            case LogMode.Info:
+                case LogMode.Info:
 #endif
-                prefix = "[i]";
-                break;
-            case LogMode.Add:
+                    prefix = "[i]";
+                    break;
+                case LogMode.Add:
 #if DEBUG
-            case LogMode.Debug:
+                case LogMode.Debug:
 #endif
-                prefix = "[+] ->";
-                break;
+                    prefix = "[+] ->";
+                    break;
 #if DEBUG
-            case LogMode.Error:
-                prefix = "[-] ->";
-                break;
+                case LogMode.Error:
+                    prefix = "[-] ->";
+                    break;
 #endif
-            case LogMode.Fatal:
-                prefix = "[*]";
-                break;
-            default:
-                return;
+                case LogMode.Fatal:
+                    prefix = "[*]";
+                    break;
+                default:
+                    return;
             }
-            Console.WriteLine($@"{prefix} {String.Format(format, objects)}");
+            Console.WriteLine($"{prefix} {String.Format(format, objects)}");
         }
-        
+
         private static void PrintHeader() {
             Console.Clear();
             const string header = "╔═╗╔╦╗╔═╗  ╦  ╦  ╔╦╗┌─┐┌┬┐  ╔╦╗┌─┐┌─┐┌─┐┬  ┌─┐┬─┐\n║ ╦ ║ ╠═╣  ╚╗╔╝  ║║║│ │ ││   ║ │ ││ ┬│ ┬│  ├┤ ├┬┘\n╚═╝ ╩ ╩ ╩   ╚╝   ╩ ╩└─┘─┴┘   ╩ └─┘└─┘└─┘┴─┘└─┘┴└─";
-            Console.WriteLine("{0}\n{1}\n\n", header, new string('-', header.Split('\n').Last().Length));
+            Console.WriteLine($"{header}\n{new string('-', header.Split('\n').Last().Length)}\n\n");
         }
 
         private static string GetInstallPath() {
@@ -66,37 +66,54 @@ namespace GTA_V_Mod_Toggler {
                     continue;
                 }
                 var installPath = Convert.ToString(productKey?.GetValue("InstallLocation"));
-                Log(LogMode.Add, "Installation found @ {0}.", installPath);
+                Log(LogMode.Add, $"Installation found @ {installPath}.");
                 return installPath;
             }
             return "";
         }
 
+        private static readonly string[] Dlls = {
+            "dinput8",
+            "d3d11"
+        };
+
         private static bool ToggleMods(string installPath) {
             Log(LogMode.Default, "Toggling mods...");
-            var enabledDll = installPath + "\\dinput8.dll";
-            var disabledDll = installPath + "\\dinput8.dll.disabled";
-            if (File.Exists(enabledDll)) {
-                File.Move(enabledDll, disabledDll);
-                Log(LogMode.Debug, $@"Moving {enabledDll} -> {disabledDll}");
-                Log(LogMode.Add, "Disabled mods.");
-                return true;
+            var enabled = -1;
+            foreach (var dll in Dlls) {
+                var enabledDll = $@"{installPath}\{dll}.dll";
+                var disabledDll = $"{enabledDll}.disabled";
+                var enabledDllExists = File.Exists(enabledDll);
+                var disabledDllExists = File.Exists(disabledDll);
+                if (enabledDllExists && disabledDllExists) {
+                    File.Delete(disabledDll);
+                    disabledDllExists = false;
+                }
+                if (enabledDllExists || enabled == 1) {
+                    enabled = 1;
+                    File.Move(enabledDll, disabledDll);
+                    Log(LogMode.Debug, $"Moving {enabledDll} -> {disabledDll}");
+                } else if (disabledDllExists || enabled == 0) {
+                    enabled = 0;
+                    File.Move(disabledDll, enabledDll);
+                    Log(LogMode.Debug, $"Moving {disabledDll} -> {enabledDll}");
+                } else {
+                    Log(LogMode.Error, $"{enabledDll}[.disabled] not found.");
+                }
             }
-            if (File.Exists(disabledDll)) {
-                File.Move(disabledDll, enabledDll);
-                Log(LogMode.Debug, $@"Moving {disabledDll} -> {enabledDll}");
-                Log(LogMode.Add, "Enabled mods.");
-                return true;
+            if (enabled == -1) {
+                Log(LogMode.Fatal, "No mods found!");
+                return false;
             }
-            Console.WriteLine("No mods found!");
-            return false;
+            Log(LogMode.Add, $"{(enabled == 1 ? "Enabled" : "Disabled")} mods.");
+            return true;
         }
 
         static void Main(string[] args) {
             PrintHeader();
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             string installPath;
-            if (File.Exists(baseDirectory + "\\GTA5.exe")) {
+            if (File.Exists(baseDirectory + @"\GTA5.exe")) {
                 installPath = baseDirectory;
             } else {
                 installPath = GetInstallPath();
@@ -104,7 +121,7 @@ namespace GTA_V_Mod_Toggler {
                     Log(LogMode.Fatal, "GTA V install path not found. Please move this executable to the root of your GTA V installation directory.\nAlternatively, you can input the install path below:");
                     installPath = Console.ReadLine();
                 }
-                if (!File.Exists(installPath + "\\GTA5.exe")) {
+                if (!File.Exists(installPath + @"\GTA5.exe")) {
                     Log(LogMode.Fatal, "Invalid install path: GTA V not found.");
                     Environment.ExitCode = -1;
                     goto Exit;
@@ -117,10 +134,10 @@ namespace GTA_V_Mod_Toggler {
             Exit:
             for (var i = 3; i > 0; i--) {
                 if (i == 3) {
-                    var exitMessage = $@"Exiting in {i}...";
-                    Console.WriteLine("\n\n{0}\n{1}", new string('-', exitMessage.Length), exitMessage);
+                    var exitMessage = $"Exiting in {i}...";
+                    Console.Write($"\n\n{new string('-', exitMessage.Length * 2)}\n{exitMessage}");
                 } else {
-                    Console.WriteLine($@"{i}...");
+                    Console.Write($" {i}...");
                 }
                 Thread.Sleep(1000);
             }
